@@ -36,16 +36,16 @@ decomp k m = do
 bfs :: G     -- ^ The Graph
     -> [Int] -- ^ The starting nodes
     -> [Int]
+
 bfs (G m) []     = []
 bfs (G m) (k:ks) = case decomp k m of
     Just (cs, m') -> k:bfs (G m') (ks ++ cs)
     Nothing       -> bfs (G m) ks
 
-
-bfs' :: G -> [Int]
-bfs' g@(G m) = case sources g of
+topsort :: G -> [Int]
+topsort g@(G m) = case sources g of
                  [] -> []
-                 (k:_) -> k:(bfs' (G $ M.delete k m))
+                 (k:_) -> k:(topsort (G $ M.delete k m))
 
 -- | Looks for the sink vertices from a graph
 sinks (G m) = filter (\k -> S.null $ m M.! k) (M.keys m)
@@ -62,8 +62,5 @@ main = do
     n <- fixInt <$> readLn
     adj <- replicateM n $ S.fromList . map read . init . words <$> getLine
     let g = G (M.fromList (zip [1..] adj))
-    putStrLn $ unwords $ map show $ bfs' g
-    --print adj
-    --print g
-    --print (bfs g (sources g))
+    putStrLn $ unwords $ map show $ topsort g
 
