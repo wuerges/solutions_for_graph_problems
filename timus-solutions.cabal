@@ -19,6 +19,26 @@ library
   build-depends:       base >= 4.7 && < 5
   default-language:    Haskell2010
 
+executable prob1106
+  hs-source-dirs:      app
+  main-is:             Prob1106.hs
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  build-depends:       base
+                     , timus-solutions
+                     , containers
+                     , array
+  default-language:    Haskell2010
+
+executable prob1033
+  hs-source-dirs:      app
+  main-is:             Prob1033.hs
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  build-depends:       base
+                     , timus-solutions
+                     , containers
+                     , array
+  default-language:    Haskell2010
+
 executable prob1022
   hs-source-dirs:      app
   main-is:             Prob1022.hs
