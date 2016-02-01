@@ -30,9 +30,28 @@ graphFromEdges :: [(Int, Int)] -> G
 graphFromEdges es = G $ M.fromListWith S.union $ mes
     where mes = map (second S.singleton) (es ++ map swap es)
 
+neighs :: Int -> G -> S.Set Int
+neighs n (G g) = case M.lookup n g of
+                   Nothing -> S.empty
+                   Just ns -> ns
+
+greedyMatch :: G -> S.Set Int
+greedyMatch (G g) = greedyMatch1 (G g) (M.keys g) S.empty
+
+greedyMatch1 :: G -> [Int] -> S.Set Int -> S.Set Int
+greedyMatch1 _  []     ls = ls
+greedyMatch1 g  (p:ps) ls = if S.member p ls
+        then greedyMatch1 g ps ls
+        else greedyMatch1 g ps (ls `S.union` neighs p g)
+
+
 main :: IO ()
 main = do
     n <- readLn
     es <- readEdges n
-    print $ graphFromEdges es
+    let g = graphFromEdges es
+    let gm = greedyMatch g
+    --print $ g
+    print $ S.size gm
+    putStrLn . unwords . map show . S.toList $ gm
 
