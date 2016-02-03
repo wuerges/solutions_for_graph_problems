@@ -38,6 +38,7 @@ mkGraph :: [[Int]] -> Int -> Int -> G
 mkGraph ds n m = G { diag = diags, n_dim = n, m_dim = m }
     where diags = S.fromList [fixkey (x, y) | [x, y] <- ds]
 
+
 readInt :: String -> Int
 readInt = read
 
