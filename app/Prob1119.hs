@@ -6,8 +6,6 @@ import Control.Monad
 import Data.Tuple
 import Data.Maybe
 import qualified Data.List as L
-import qualified Data.Sequence as Q
-import Data.Sequence ( ViewL(..), (><))
 import Data.Ord
 import Control.Arrow
 import Debug.Trace
@@ -31,18 +29,16 @@ validV n m v = a <=n && b <= m
           b = v `mod` 10000
 
 sides :: V -> [V]
---sides v = [first (+1) v, first (1-) v, second (+1) v, second (1-) v]
 sides v = [v + 10000, v + 1]
 
 mkGraph :: [[Int]] -> Int -> Int -> G
 mkGraph ds n m = G { vertexM = M.fromListWith (++) (d_w_edges ++ r_edges), n_dim = n, m_dim = m }
     where d_edges :: [((Int, Int), (Int,Int))]
           d_edges = [((x-1, y-1), (x, y)) | [x, y] <- ds]
-          ends = (n, m) : (0,0) : map snd d_edges
-          begs = (n,m) : (0,0) : map fst d_edges
+          ends = (n, m) : (0,0) : map snd d_edges ++ map fst d_edges
 
           r_edges :: [(V, [(V, Double)])]
-          r_edges = [(mkV e,[(mkV b, dist e b)]) | e <- ends, b <- begs]
+          r_edges = [(mkV e,[(mkV b, dist e b)]) | e <- ends, b <- ends]
           d_w_edges :: [(V, [(V, Double)])]
           d_w_edges = [(mkV a, [(mkV b, sqrt 2)]) | (a, b) <- d_edges]
 
@@ -54,39 +50,21 @@ readInt = read
 
 decomp :: V -> G -> [(V, Double)]
 decomp v g = vertexM g ! v
- {-
-decomp v g = ns
-       where ns = d2 ++ [(vi, 1) | vi <- sides v, validV (n_dim g) (m_dim g) vi]
-             d2 = if S.member (ru v) (diag g) then [(ru v, sqrt 2)] else []
-             ru ab = ab + 10001
-             -}
 
-
-search :: G -> S.IntSet -> Q.Seq V -> Q.Seq (E, Double)
-search g vis q | Q.null q       = Q.empty
+search :: G -> S.IntSet -> [V] -> [(E, Double)]
+search g vis []       = []
+search g vis (v:vs)
                | S.member v vis = search g vis vs
-               | otherwise =  es >< search g (S.insert v vis) (vs >< qs)
+               | otherwise =  es ++ search g (S.insert v vis) (vs ++ qs)
                     where ns = decomp v g
-                          qs = Q.fromList $ map fst ds
+                          qs = map fst ds
                           ds = sortOn snd ns
-                          es = Q.fromList $ [((a, b), w) | (a, (b, w)) <- zip (repeat v) ds]
-                          (v :< vs)  = Q.viewl q
+                          es = [((a, b), w) | (a, (b, w)) <- zip (repeat v) ds]
 
 type Dst =  M.IntMap (Double, V)
 
-calcSP :: Q.Seq (E, Double) -> Dst -> Dst
+calcSP :: [(E, Double)] -> Dst -> Dst
 calcSP q dst = foldl (flip calcSP1) dst q
-{-
-calcSP q rem | Q.null q  = rem
-             | otherwise = calcSP es $ M.alter alterF b rem
-                      where (w, t) = rem ! a
-                            (((a, b), ew) :< es) = Q.viewl q
-                            alterF v = case v of
-                                       Nothing         -> Just (ew + w, a)
-                                       Just o@(ow, op) -> Just $ if ow > ew + w
-                                                           then (ew + w, a)
-                                                           else o
-                                                           -}
 
 calcSP1 :: (E, Double) -> Dst -> Dst
 calcSP1 ((a, b), ew) rem = M.alter alterF b rem
@@ -96,7 +74,7 @@ calcSP1 ((a, b), ew) rem = M.alter alterF b rem
                                    | otherwise   = Just o
 
 shortestPaths :: G -> V -> Dst
-shortestPaths g v = calcSP (search g S.empty $ Q.singleton v) (M.singleton v (0.0, v))
+shortestPaths g v = calcSP (search g S.empty $ [v]) (M.singleton v (0.0, v))
 
 sortOn :: Ord b => (a -> b) -> [a] -> [a]
 sortOn = L.sortBy . comparing
