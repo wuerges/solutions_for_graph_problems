@@ -23,14 +23,6 @@ mkV (a, b) = (a * 10000) + b
 data G = G { vertexM :: M.IntMap [(V, Double)], n_dim :: Int, m_dim :: Int }
     deriving Show
 
-validV :: Int -> Int -> V -> Bool
-validV n m v = a <=n && b <= m
-    where a = v `div` 10000
-          b = v `mod` 10000
-
-sides :: V -> [V]
-sides v = [v + 10000, v + 1]
-
 mkGraph :: [[Int]] -> Int -> Int -> G
 mkGraph ds n m = G { vertexM = M.fromListWith (++) (d_w_edges ++ r_edges), n_dim = n, m_dim = m }
     where d_edges :: [((Int, Int), (Int,Int))]
