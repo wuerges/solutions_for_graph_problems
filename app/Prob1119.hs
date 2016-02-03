@@ -14,24 +14,29 @@ import Debug.Trace
 
 import qualified Data.IntMap as M
 import Data.IntMap ((!))
-import qualified Data.Set as S
+import qualified Data.IntSet as S
 
-type V = (Int, Int)
+type V = Int
 type E = (V, V)
 
-data G = G { removed :: S.Set V, diag :: S.Set V, n_dim :: Int, m_dim :: Int }
+mkV :: (Int, Int) -> Int
+mkV = fixkey
+
+data G = G { diag :: S.IntSet, n_dim :: Int, m_dim :: Int }
     deriving Show
 
 validV :: Int -> Int -> V -> Bool
-validV n m (a, b) = a >= 0 && b >= 0 && a <=n && b <= m
+validV n m v = a <=n && b <= m
+    where a = v `div` 10000
+          b = v `mod` 10000
 
 sides :: V -> [V]
 --sides v = [first (+1) v, first (1-) v, second (+1) v, second (1-) v]
-sides v = [first (+1) v, second (+1) v]
+sides v = [v + 10000, v + 1]
 
 mkGraph :: [[Int]] -> Int -> Int -> G
-mkGraph ds n m = G { removed = S.empty, diag = diags, n_dim = n, m_dim = m }
-    where diags = S.fromList [(x, y) | [x, y] <- ds]
+mkGraph ds n m = G { diag = diags, n_dim = n, m_dim = m }
+    where diags = S.fromList [fixkey (x, y) | [x, y] <- ds]
 
 readInt :: String -> Int
 readInt = read
@@ -40,10 +45,10 @@ decomp :: V -> G -> [(V, Double)]
 decomp v g = ns
        where ns = d2 ++ [(vi, 1) | vi <- sides v, validV (n_dim g) (m_dim g) vi]
              d2 = if S.member (ru v) (diag g) then [(ru v, sqrt 2)] else []
-             ru (a, b) = (a+1, b+1)
+             ru ab = ab + 10001
 
 
-search :: G -> S.Set V -> Q.Seq V -> Q.Seq (E, Double)
+search :: G -> S.IntSet -> Q.Seq V -> Q.Seq (E, Double)
 search g vis q | Q.null q       = Q.empty
                | S.member v vis = search g vis vs
                | otherwise =  es >< search g (S.insert v vis) (vs >< qs)
@@ -73,14 +78,14 @@ fixkey :: (Int, Int) -> (Int)
 fixkey (a, b) = (a * 10000 + b)
 
 calcSP1 :: (E, Double) -> Dst -> Dst
-calcSP1 ((a, b), ew) rem = M.alter alterF (fixkey b) rem
-    where (w, t) = rem ! fixkey a
+calcSP1 ((a, b), ew) rem = M.alter alterF b rem
+    where (w, t) = rem ! a
           alterF Nothing                         = Just (ew + w, a)
           alterF (Just o@(ow, op)) | ow > ew + w = Just (ew + w, a)
                                    | otherwise   = Just o
 
 shortestPaths :: G -> V -> Dst
-shortestPaths g v = calcSP (search g S.empty $ Q.singleton v) (M.singleton (fixkey v) (0.0, v))
+shortestPaths g v = calcSP (search g S.empty $ Q.singleton v) (M.singleton v (0.0, v))
 
 sortOn :: Ord b => (a -> b) -> [a] -> [a]
 sortOn = L.sortBy . comparing
@@ -97,6 +102,6 @@ main = do
     --let m0 = M.singleton v0 (0.0, v0) :: Dst
     --print g
     --print $ search g [v0]
-    let d = (fst $ shortestPaths g v0 ! fixkey (n, m))
+    let d = (fst $ shortestPaths g (fixkey v0) ! fixkey (n, m))
     print $  round $ 100 * d
 
