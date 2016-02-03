@@ -85,12 +85,8 @@ main = do
     [n, m] <- map readInt . words <$> getLine
     d <- readLn
     ds <- replicateM d $ map readInt . words <$> getLine
-    --print $ mkEdges ds n m
     let g = mkGraph ds n m
     let v0 = (0, 0)
-    --let m0 = M.singleton v0 (0.0, v0) :: Dst
-    --print g
-    --print $ search g [v0]
     let d = (fst $ shortestPaths g (mkV v0) ! mkV (n, m))
     print $  round $ 100 * d
 
