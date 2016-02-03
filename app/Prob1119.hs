@@ -12,8 +12,8 @@ import Data.Ord
 import Control.Arrow
 import Debug.Trace
 
-import qualified Data.Map as M
-import Data.Map ((!))
+import qualified Data.IntMap as M
+import Data.IntMap ((!))
 import qualified Data.Set as S
 
 type V = (Int, Int)
@@ -53,7 +53,7 @@ search g vis q | Q.null q       = Q.empty
                           es = Q.fromList $ [((a, b), w) | (a, (b, w)) <- zip (repeat v) ds]
                           (v :< vs)  = Q.viewl q
 
-type Dst =  M.Map V (Double, V)
+type Dst =  M.IntMap (Double, V)
 
 calcSP :: Q.Seq (E, Double) -> Dst -> Dst
 calcSP q dst = foldl (flip calcSP1) dst q
@@ -69,15 +69,18 @@ calcSP q rem | Q.null q  = rem
                                                            else o
                                                            -}
 
+fixkey :: (Int, Int) -> (Int)
+fixkey (a, b) = (a * 10000 + b)
+
 calcSP1 :: (E, Double) -> Dst -> Dst
-calcSP1 ((a, b), ew) rem = M.alter alterF b rem
-    where (w, t) = rem ! a
+calcSP1 ((a, b), ew) rem = M.alter alterF (fixkey b) rem
+    where (w, t) = rem ! fixkey a
           alterF Nothing                         = Just (ew + w, a)
           alterF (Just o@(ow, op)) | ow > ew + w = Just (ew + w, a)
                                    | otherwise   = Just o
 
 shortestPaths :: G -> V -> Dst
-shortestPaths g v = calcSP (search g S.empty $ Q.singleton v) (M.singleton v (0.0, v))
+shortestPaths g v = calcSP (search g S.empty $ Q.singleton v) (M.singleton (fixkey v) (0.0, v))
 
 sortOn :: Ord b => (a -> b) -> [a] -> [a]
 sortOn = L.sortBy . comparing
@@ -94,6 +97,6 @@ main = do
     --let m0 = M.singleton v0 (0.0, v0) :: Dst
     --print g
     --print $ search g [v0]
-    let d = (fst $ shortestPaths g v0 ! (n, m))
+    let d = (fst $ shortestPaths g v0 ! fixkey (n, m))
     print $  round $ 100 * d
 
