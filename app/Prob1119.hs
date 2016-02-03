@@ -20,9 +20,9 @@ type V = Int
 type E = (V, V)
 
 mkV :: (Int, Int) -> Int
-mkV = fixkey
+mkV (a, b) = (a * 10000) + b
 
-data G = G { diag :: S.IntSet, n_dim :: Int, m_dim :: Int }
+data G = G { vertexM :: M.IntMap [(V, Double)], n_dim :: Int, m_dim :: Int }
     deriving Show
 
 validV :: Int -> Int -> V -> Bool
@@ -35,18 +35,31 @@ sides :: V -> [V]
 sides v = [v + 10000, v + 1]
 
 mkGraph :: [[Int]] -> Int -> Int -> G
-mkGraph ds n m = G { diag = diags, n_dim = n, m_dim = m }
-    where diags = S.fromList [fixkey (x, y) | [x, y] <- ds]
+mkGraph ds n m = G { vertexM = M.fromListWith (++) (d_w_edges ++ r_edges), n_dim = n, m_dim = m }
+    where d_edges :: [((Int, Int), (Int,Int))]
+          d_edges = [((x-1, y-1), (x, y)) | [x, y] <- ds]
+          ends = (n, m) : (0,0) : map snd d_edges
+          begs = (n,m) : (0,0) : map fst d_edges
 
+          r_edges :: [(V, [(V, Double)])]
+          r_edges = [(mkV e,[(mkV b, dist e b)]) | e <- ends, b <- begs]
+          d_w_edges :: [(V, [(V, Double)])]
+          d_w_edges = [(mkV a, [(mkV b, sqrt 2)]) | (a, b) <- d_edges]
+
+          dist :: (Int, Int) -> (Int, Int) -> Double
+          dist (x1, y1) (x2, y2) = fromIntegral $ abs (x1 - x2) + abs (y1 - y2)
 
 readInt :: String -> Int
 readInt = read
 
 decomp :: V -> G -> [(V, Double)]
+decomp v g = vertexM g ! v
+ {-
 decomp v g = ns
        where ns = d2 ++ [(vi, 1) | vi <- sides v, validV (n_dim g) (m_dim g) vi]
              d2 = if S.member (ru v) (diag g) then [(ru v, sqrt 2)] else []
              ru ab = ab + 10001
+             -}
 
 
 search :: G -> S.IntSet -> Q.Seq V -> Q.Seq (E, Double)
@@ -75,9 +88,6 @@ calcSP q rem | Q.null q  = rem
                                                            else o
                                                            -}
 
-fixkey :: (Int, Int) -> (Int)
-fixkey (a, b) = (a * 10000 + b)
-
 calcSP1 :: (E, Double) -> Dst -> Dst
 calcSP1 ((a, b), ew) rem = M.alter alterF b rem
     where (w, t) = rem ! a
@@ -103,6 +113,6 @@ main = do
     --let m0 = M.singleton v0 (0.0, v0) :: Dst
     --print g
     --print $ search g [v0]
-    let d = (fst $ shortestPaths g (fixkey v0) ! fixkey (n, m))
+    let d = (fst $ shortestPaths g (mkV v0) ! mkV (n, m))
     print $  round $ 100 * d
 
